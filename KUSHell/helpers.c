@@ -25,7 +25,7 @@ void print_help(void) {
     printf("-p  socket port\n");
     printf("-s  server mode\n");
     printf("-c  client mode\n");
-    printf("-h  help meeeeeee\n\n");
+    printf("-h  help me\n\n");
     printf("Example:\n");
     printf("./kushell -u /socket/path -p 1337 -s");
 }

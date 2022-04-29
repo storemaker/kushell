@@ -18,6 +18,8 @@ void start_server_socket(ARGUMENTS *args) {
         exit(EXIT_FAILURE);
     }
     
+    printf("Socket created...");
+    
     int opt = 1;
     setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     
@@ -30,12 +32,16 @@ void start_server_socket(ARGUMENTS *args) {
         perror("Server bind failed.\n");
         exit(EXIT_FAILURE);
     }
+    
+    printf("Socket binded...");
 
     // 4. Get a listening socket
     if (listen(server_socket, 32) < 0) {
         perror("Server listen failed.\n");
         exit(EXIT_FAILURE);
     }
+    
+    printf("Server listening...");
     
     // init FDs
     for(int i = 0; i < MAX_CLIENTS; i++) {
@@ -83,29 +89,28 @@ void handle_communication(ARGUMENTS *args)
                         // 1. Provide a connection acceptance service if the listening socket is ready to read
                         struct sockaddr_in client;
                         socklen_t len = sizeof(client);
-                        int new_sock = accept(listen_sock,(struct sockaddr *)&client,&len);
-                        if(new_sock < 0)
-                        {
-                            perror("accept fail...\n ");
+                        int new_sock = accept(server_socket,(struct sockaddr *)&client,&len);
+                        
+                        if(new_sock < 0) {
+                            perror("Client accept failed...\n ");
                             continue;
                         }
-                        //After obtaining the new file descriptor, add the file descriptor to the array for the next time you care about the file descriptor
-                        int i = 0;
-                        for( ; i < num; i++ )
-                        {
+                        
+                        // find free FDs
+                        for(i = 0; i < MAX_CLIENTS; i++)
                             if( fd_list[i].fd == -1 )//Place the first value in the array at - 1
                                 break;
-                        }
-                        if( i < num )
-                        {
-                            fd_list[i].fd= new_sock;
+                        
+                        if(i < MAX_CLIENTS) {
+                            // add new client socket to list
+                            fd_list[i].fd = new_sock;
                             fd_list[i].events = POLLIN;
                         }
-                        else
-                        {
+                        else {
+                            // close the connection if MAX_CLIENTS is reached
                             close(new_sock);
                         }
-                        printf("get a new link![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
+                        printf("got a new connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
                         continue;
                     }
                     
@@ -114,28 +119,28 @@ void handle_communication(ARGUMENTS *args)
                     if( fd_list[i].revents & POLLIN ) {
                         char buf[1024];
                         ssize_t s = read(fd_list[i].fd,buf,sizeof(buf)-1);
-                        if( s < 0 )
-                        {
+                        if( s < 0 ) {
                             printf("read fail...\n");
                             continue;
                         }
-                        else if( s == 0 )
-                        {
+                        else if( s == 0 ) {
                             printf("client quit...\n");
                             close(fd_list[i].fd);
                             fd_list[i].fd = -1;
+                            fd_list[i].events = 0;
+                            fd_list[i].revents = 0;
                         }
-                        else
-                        {
+                        else {
                             buf[s] = 0;
-                            printf("client# %s\n",buf);
+                            printf("client[%d]: %s\n", i-2, buf);
                         }
                     }
-                }
-            }
+                } // end for
+                
                 break;
-        }
-    }
+            } // end default case
+        } // end switch
+    } // end while loop
         
 
     return;
