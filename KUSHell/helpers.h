@@ -9,8 +9,10 @@
 #define helpers_h
 
 #include <stdio.h>
-
-#endif /* helpers_h */
+#include <time.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <string.h>
 
 typedef enum {SERVER, CLIENT} MODE;
 
@@ -24,3 +26,7 @@ typedef struct arguments {
 void print_current_time(void);
 void print_help(void);
 ARGUMENTS *parse_cmd_args(int argc, char **argv);
+
+#endif /* helpers_h */
+
+

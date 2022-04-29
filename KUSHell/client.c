@@ -7,6 +7,6 @@
 
 #include "client.h"
 
-void init_client(ARGUMENTS args) {
+void init_client(ARGUMENTS *args) {
     return;
 }

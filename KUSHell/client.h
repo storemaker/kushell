@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include "helpers.h"
 
+void init_client(ARGUMENTS *args);
+
 #endif /* client_h */
 
-void init_client(ARGUMENTS *args);
+

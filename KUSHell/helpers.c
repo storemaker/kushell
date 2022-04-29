@@ -7,8 +7,6 @@
 
 #include "helpers.h"
 
-
-
 void print_current_time(void) {
     time_t rawtime;
     struct tm * timeinfo;

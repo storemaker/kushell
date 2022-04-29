@@ -18,7 +18,6 @@ int main(int argc, char **argv)
 {
   
     ARGUMENTS *args = parse_cmd_args(argc, argv);
-    printf("%s %s %d %d", args->socket_path, args->socket_address, args->socket_port, args->mode);
     
     if (args->mode == SERVER) {
         init_server(args);
@@ -27,5 +26,5 @@ int main(int argc, char **argv)
         init_client(args);
     }
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
