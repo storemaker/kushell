@@ -18,7 +18,7 @@ void start_server_socket(ARGUMENTS *args) {
         exit(EXIT_FAILURE);
     }
     
-    printf("Socket created...");
+    printf("Socket created...\n");
     
     int opt = 1;
     setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -41,7 +41,7 @@ void start_server_socket(ARGUMENTS *args) {
         exit(EXIT_FAILURE);
     }
     
-    printf("Server listening...");
+    printf("Server listening...\n");
     
     // init FDs
     for(int i = 0; i < MAX_CLIENTS; i++) {
@@ -60,14 +60,26 @@ void start_server_socket(ARGUMENTS *args) {
  
 }
 
-void handle_communication(ARGUMENTS *args)
+char server_prompt(void) {
+    char buffer[1024];
+    
+    
+    return *buffer;
+}
+
+void server_loop(ARGUMENTS *args)
 {
     int i = 0;
+    char buf[1024];
+    printf("> ");
+    scanf("%s", buf);
+    //printf("%s", buf);
     while(1) {
+        
         //4. Start calling poll and wait for the file descriptor set of interest to be ready
-        switch( poll(fd_list, MAX_CLIENTS, 3000) ) {
+        switch( poll(fd_list, MAX_CLIENTS, 1000) ) {
             case 0: {
-                printf("timeout...\n");
+                //printf("timeout...\n");
                 continue;
             }
             case -1: {
@@ -77,7 +89,13 @@ void handle_communication(ARGUMENTS *args)
             default: { // poll is successfull
                 //   If it is a listener file descriptor, call accept to accept a new connection
                 //   If it is a normal file descriptor, read is called to read the data
-                for(i = 0; i < MAX_CLIENTS; i++) {
+                // stdin
+                if(i == 0 && (fd_list[0].revents & POLLIN)) {
+                    printf("input: %s", buf);
+                }
+                
+                
+                for(i = 1; i < MAX_CLIENTS; i++) {
                     
                     // skip uninitialized FDs
                     if(fd_list[i].fd == -1)
@@ -116,23 +134,16 @@ void handle_communication(ARGUMENTS *args)
                     
                     //2. At this point, we are concerned with ordinary file descriptors.
                     //   Provide services to read data at this time
-                    if( fd_list[i].revents & POLLIN ) {
+                    if( i > 1 && fd_list[i].revents & POLLIN ) {
                         char buf[1024];
                         ssize_t s = read(fd_list[i].fd,buf,sizeof(buf)-1);
                         if( s < 0 ) {
                             printf("read fail...\n");
                             continue;
                         }
-                        else if( s == 0 ) {
-                            printf("client quit...\n");
-                            close(fd_list[i].fd);
-                            fd_list[i].fd = -1;
-                            fd_list[i].events = 0;
-                            fd_list[i].revents = 0;
-                        }
-                        else {
-                            buf[s] = 0;
-                            printf("client[%d]: %s\n", i-2, buf);
+                        else if (s > 0) {
+                            //buf[s] = 0;
+                            printf("client[%d] %s\n", i-2, buf);
                         }
                     }
                 } // end for
@@ -147,7 +158,8 @@ void handle_communication(ARGUMENTS *args)
 }
 
 void init_server(ARGUMENTS *args) {
+    
     start_server_socket(args);
-    handle_communication(args);
+    server_loop(args);
     return;
 }

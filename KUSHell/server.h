@@ -12,7 +12,7 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
+#include <sys/un.h>
 #include "helpers.h"
 #define MAX_CLIENTS 32
 
@@ -20,7 +20,8 @@ int server_socket;
 struct pollfd fd_list[MAX_CLIENTS];
 void init_server(ARGUMENTS *args);
 void start_server_socket(ARGUMENTS *args);
-void handle_communication(ARGUMENTS *args);
+void server_loop(ARGUMENTS *args);
+char server_prompt(void);
 
 #endif /* server_h */
 

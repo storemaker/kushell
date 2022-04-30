@@ -14,4 +14,4 @@ helpers.o: helpers.c
 	gcc -c helpers.c
 
 clean:
-	rm *.o kushell
+	rm *.o
