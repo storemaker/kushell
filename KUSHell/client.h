@@ -17,7 +17,7 @@
 #define MAX_CLIENTS 32
 
 int client_socket;
-struct pollfd fd_list[2];
+struct pollfd client_fd_list[2];
 void init_client(ARGUMENTS *args);
 void connect_to_server(ARGUMENTS *args);
 void client_loop(void);

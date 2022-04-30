@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <pwd.h>
+#define DELIM_CHAR '<'
 
 typedef enum {SERVER, CLIENT} MODE;
 
@@ -26,6 +28,9 @@ typedef struct arguments {
 void print_current_time(void);
 void print_help(void);
 ARGUMENTS *parse_cmd_args(int argc, char **argv);
+void print_prompt(void);
+const char *get_username(void);
+char *get_hostname(void);
 
 #endif /* helpers_h */
 

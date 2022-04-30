@@ -33,7 +33,7 @@ void start_server_socket(ARGUMENTS *args) {
         exit(EXIT_FAILURE);
     }
     
-    printf("Socket binded...");
+    printf("Socket binded...\n");
 
     // 4. Get a listening socket
     if (listen(server_socket, 32) < 0) {
@@ -71,8 +71,6 @@ void server_loop(ARGUMENTS *args)
 {
     int i = 0;
     char buf[1024];
-    printf("> ");
-    scanf("%s", buf);
     //printf("%s", buf);
     while(1) {
         
@@ -90,51 +88,52 @@ void server_loop(ARGUMENTS *args)
                 //   If it is a listener file descriptor, call accept to accept a new connection
                 //   If it is a normal file descriptor, read is called to read the data
                 // stdin
-                if(i == 0 && (fd_list[0].revents & POLLIN)) {
-                    printf("input: %s", buf);
+                if((fd_list[0].revents & POLLIN)) {
+                    printf("> ");
+                    printf("input: %s\n", buf);
+                }
+                
+                // server socket
+                if(fd_list[1].fd == server_socket && (fd_list[1].revents & POLLIN)) {
+                    
+                    // 1. Provide a connection acceptance service if the listening socket is ready to read
+                    struct sockaddr_in client;
+                    socklen_t len = sizeof(client);
+                    int new_sock = accept(server_socket,(struct sockaddr *)&client,&len);
+                    
+                    if(new_sock < 0) {
+                        perror("Client accept failed...\n ");
+                        continue;
+                    }
+                    
+                    // find free FDs
+                    for(i = 0; i < MAX_CLIENTS; i++)
+                        if( fd_list[i].fd == -1 )//Place the first value in the array at - 1
+                            break;
+                    
+                    if(i < MAX_CLIENTS) {
+                        // add new client socket to list
+                        fd_list[i].fd = new_sock;
+                        fd_list[i].events = POLLIN;
+                    }
+                    else {
+                        // close the connection if MAX_CLIENTS is reached
+                        close(new_sock);
+                    }
+                    printf("got a new connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
+                    continue;
                 }
                 
                 
-                for(i = 1; i < MAX_CLIENTS; i++) {
+                for(i = 2; i < MAX_CLIENTS; i++) {
                     
                     // skip uninitialized FDs
                     if(fd_list[i].fd == -1)
                         continue;
                     
-                    // server socket
-                    if(fd_list[i].fd == server_socket && (fd_list[i].revents & POLLIN)) {
-                        
-                        // 1. Provide a connection acceptance service if the listening socket is ready to read
-                        struct sockaddr_in client;
-                        socklen_t len = sizeof(client);
-                        int new_sock = accept(server_socket,(struct sockaddr *)&client,&len);
-                        
-                        if(new_sock < 0) {
-                            perror("Client accept failed...\n ");
-                            continue;
-                        }
-                        
-                        // find free FDs
-                        for(i = 0; i < MAX_CLIENTS; i++)
-                            if( fd_list[i].fd == -1 )//Place the first value in the array at - 1
-                                break;
-                        
-                        if(i < MAX_CLIENTS) {
-                            // add new client socket to list
-                            fd_list[i].fd = new_sock;
-                            fd_list[i].events = POLLIN;
-                        }
-                        else {
-                            // close the connection if MAX_CLIENTS is reached
-                            close(new_sock);
-                        }
-                        printf("got a new connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
-                        continue;
-                    }
-                    
                     //2. At this point, we are concerned with ordinary file descriptors.
                     //   Provide services to read data at this time
-                    if( i > 1 && fd_list[i].revents & POLLIN ) {
+                    if( fd_list[i].revents & POLLIN ) {
                         char buf[1024];
                         ssize_t s = read(fd_list[i].fd,buf,sizeof(buf)-1);
                         if( s < 0 ) {
@@ -151,6 +150,8 @@ void server_loop(ARGUMENTS *args)
                 break;
             } // end default case
         } // end switch
+       
+        
     } // end while loop
         
 

@@ -7,17 +7,34 @@
 
 #include "helpers.h"
 
-void print_current_time(void) {
+const char *get_username()
+{
+    uid_t uid = geteuid();
+    struct passwd *pw = getpwuid(uid);
+    return (pw) ? pw->pw_name : "";
+}
+
+char *get_hostname()
+{
+    static char hostname[1024];
+    gethostname(hostname, 1023);
+    return hostname;
+}
+
+void print_prompt()
+{
     time_t rawtime;
     struct tm * timeinfo;
     
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     
-    printf("%d:%d ", timeinfo->tm_hour, timeinfo->tm_min);
+    printf("%d:%d %s@%s%c ", timeinfo->tm_hour, timeinfo->tm_min, get_username(), get_hostname(), DELIM_CHAR);
+    fflush(stdout);
 }
 
-void print_help(void) {
+void print_help(void)
+{
     printf("KUSHell by Jakub Taraba (simple server-client shell)\n");
     printf("Options:\n");
     printf("-u  socket path\n");
@@ -30,7 +47,8 @@ void print_help(void) {
     printf("./kushell -u /socket/path -p 1337 -s");
 }
 
-ARGUMENTS *parse_cmd_args(int argc, char **argv) {
+ARGUMENTS *parse_cmd_args(int argc, char **argv)
+{
     int option = 0;
     ARGUMENTS *args = malloc(sizeof(ARGUMENTS));
     

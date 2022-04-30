@@ -13,12 +13,12 @@ void init_client(ARGUMENTS *args)
     connect_to_server(args);
     
     // FD for client's STDIN
-    fd_list[0].fd = 0;
-    fd_list[0].events = (POLLIN | POLLPRI);
+    client_fd_list[0].fd = 0;
+    client_fd_list[0].events = (POLLIN | POLLPRI);
     
     // FD for new connections
-    fd_list[1].fd = client_socket;
-    fd_list[1].events = (POLLIN | POLLPRI);
+    client_fd_list[1].fd = client_socket;
+    client_fd_list[1].events = (POLLIN | POLLPRI);
     
     client_loop();
 }
@@ -26,10 +26,11 @@ void init_client(ARGUMENTS *args)
 void client_loop()
 {
     int i = 0;
-    
+    char buffer[1024];
+    print_prompt();
     while(1) {
         //4. Start calling poll and wait for the file descriptor set of interest to be ready
-        switch( poll(fd_list, MAX_CLIENTS, 3000) ) {
+        switch( poll(client_fd_list, MAX_CLIENTS, 3000) ) {
             case 0: {
                 //printf("timeout...\n");
                 continue;
@@ -43,15 +44,18 @@ void client_loop()
                 //   If it is a normal file descriptor, read is called to read the data
                 for(i = 0; i < 2; i++) {
                     // stdin
-                    if(i == 0 && (fd_list[0].revents & POLLIN)) {
+                    if(i == 0 && (client_fd_list[0].revents & POLLIN)) {
                         //server_prompt();
-                        
+                        fgets(buffer, 1024, stdin);
+                        write(client_socket, buffer, strlen(buffer)+1);
+                        print_prompt();
                     }
                     // server socket
-                    if(i == 1 && (fd_list[1].revents & POLLIN)) {
+                    if(i == 1 && (client_fd_list[1].revents & POLLIN)) {
                         char buf[1024];
-                        read(fd_list[1].fd,buf,sizeof(buf)-1);
-                        printf("server: %s\n", buf);
+                        ssize_t size = read(client_fd_list[1].fd,buf,sizeof(buf)-1);
+                        if (size > 0)
+                            printf("server: %s\n", buf);
                     }
                     
                 } // end for
