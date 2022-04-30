@@ -14,7 +14,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <pwd.h>
-#define DELIM_CHAR '<'
+#define DELIM_CHAR '%'
 
 typedef enum {SERVER, CLIENT} MODE;
 

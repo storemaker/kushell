@@ -47,7 +47,14 @@ void client_loop()
                     if(i == 0 && (client_fd_list[0].revents & POLLIN)) {
                         //server_prompt();
                         fgets(buffer, 1024, stdin);
+                        buffer[strcspn(buffer, "\n")] = 0;
                         write(client_socket, buffer, strlen(buffer)+1);
+                        
+                        if(!strcmp(buffer, "quit")) {
+                            close(client_socket);
+                            exit(EXIT_SUCCESS);
+                        }
+                        
                         print_prompt();
                     }
                     // server socket

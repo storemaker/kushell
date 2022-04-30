@@ -60,22 +60,74 @@ void start_server_socket(ARGUMENTS *args) {
  
 }
 
-char server_prompt(void) {
-    char buffer[1024];
+
+void handle_server_command(char *command)
+{
+    
+    if (strcmp(command, "help") == 0) {
+        server_help();
+    }
+    else if (strcmp(command, "halt") == 0) {
+        server_halt();
+    }
+    else if (strcmp(command, "stat") == 0) {
+        server_stat();
+    } else {
+        printf("Unknown command.\n");
+    }
     
     
-    return *buffer;
+    return;
+}
+
+char *handle_command(char *command, int client_id)
+{
+    char *output;
+    
+    if (strlen(command) == 0)
+        return 0; // return but do not close client socket
+    
+    
+    // the client exited program, kill the socket afterwards
+    if (!(strcmp(command, "quit"))) {
+        return "quit";
+    }
+        
+    
+    
+    
+    
+    return output; // do not close client socket
+}
+
+void close_client_connection(int client_id)
+{
+    if(fd_list[client_id].fd != -1) {
+        return;
+    }
+    
+    //close the socket and reset FD for future use
+    close(fd_list[client_id].fd);
+    fd_list[client_id].fd = -1;
+    fd_list[client_id].revents = 0;
+    fd_list[client_id].events = 0;
+    
+    //TODO: release client IP from connected_clients array
+    
 }
 
 void server_loop(ARGUMENTS *args)
 {
-    int i = 0;
-    char buf[1024];
-    //printf("%s", buf);
+    int i;
+    char server_command[1024];
+    char client_command[1024];
+    char *exec_output;
+    
+    print_prompt();
     while(1) {
         
         //4. Start calling poll and wait for the file descriptor set of interest to be ready
-        switch( poll(fd_list, MAX_CLIENTS, 1000) ) {
+        switch( poll(fd_list, MAX_CLIENTS + 2, 1000) ) {
             case 0: {
                 //printf("timeout...\n");
                 continue;
@@ -89,8 +141,10 @@ void server_loop(ARGUMENTS *args)
                 //   If it is a normal file descriptor, read is called to read the data
                 // stdin
                 if((fd_list[0].revents & POLLIN)) {
-                    printf("> ");
-                    printf("input: %s\n", buf);
+                    fgets(server_command, 1024, stdin);
+                    server_command[strcspn(server_command, "\n")] = 0;
+                    handle_server_command(server_command);
+                    print_prompt();
                 }
                 
                 // server socket
@@ -125,32 +179,47 @@ void server_loop(ARGUMENTS *args)
                 }
                 
                 
-                for(i = 2; i < MAX_CLIENTS; i++) {
+                for(i = 2; i < MAX_CLIENTS + 2; i++) {
                     
-                    // skip uninitialized FDs
+                    // skip empty FDs
                     if(fd_list[i].fd == -1)
                         continue;
                     
                     //2. At this point, we are concerned with ordinary file descriptors.
                     //   Provide services to read data at this time
                     if( fd_list[i].revents & POLLIN ) {
-                        char buf[1024];
-                        ssize_t s = read(fd_list[i].fd,buf,sizeof(buf)-1);
+                        
+                        ssize_t s = read(fd_list[i].fd, client_command, sizeof(client_command)-1);
                         if( s < 0 ) {
                             printf("read fail...\n");
                             continue;
                         }
                         else if (s > 0) {
                             //buf[s] = 0;
-                            printf("client[%d] %s\n", i-2, buf);
+                            printf("client[%d] command: %s\n", i-2, client_command);
+                            exec_output = handle_command(client_command, i);
+                            
+                            if (strcmp(exec_output, "quit") == 0) {
+                                close_client_connection(i);
+                            } else {
+                                write(fd_list[i].fd, exec_output, strlen(exec_output)+1);
+                            }
+                            
                         }
+                        
+                        memset(client_command, 0, 1024);
                     }
                 } // end for
+                
+                //
                 
                 break;
             } // end default case
         } // end switch
        
+        
+        // TODO: keep-alive check
+        
         
     } // end while loop
         
