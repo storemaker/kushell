@@ -20,31 +20,48 @@ int redirection_in;
 int redirection_out;
 
 void start_server_socket(ARGUMENTS *args) {
-    struct sockaddr_in local;
     
-    server_socket = socket(AF_INET,SOCK_STREAM,0);
-    
-    if ( server_socket < 0 ) {
-        perror("Socket failed to create...\n");
-        exit(EXIT_FAILURE);
+    if (args->socket_path && strlen(args->socket_path) > 0) {
+        struct sockaddr_un local_unix;
+        server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+        local_unix.sun_family = AF_UNIX;
+        strcpy(local_unix.sun_path, args->socket_path);
+        
+        // 3. Binding port number
+        if (bind(server_socket,(struct sockaddr *)&local_unix, sizeof(local_unix)) < 0) {
+            perror("Server bind failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        printf("Socket binded...\n");
+    }
+    else {
+        struct sockaddr_in local;
+        server_socket = socket(AF_INET,SOCK_STREAM,0);
+        
+        if ( server_socket < 0 ) {
+            perror("Socket failed to create...\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        printf("Socket created...\n");
+        
+        int opt = 1;
+        setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        
+        local.sin_family = AF_INET;
+        local.sin_addr.s_addr = (strlen(args->socket_address) > 0) ? inet_addr(args->socket_address) : htonl(INADDR_ANY);
+        local.sin_port = htons(args->socket_port);
+        
+        // 3. Binding port number
+        if (bind(server_socket,(struct sockaddr *)&local, sizeof(local)) < 0) {
+            perror("Server bind failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        printf("Socket binded...\n");
     }
     
-    printf("Socket created...\n");
-    
-    int opt = 1;
-    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    
-    local.sin_family = AF_INET;
-    local.sin_addr.s_addr = (strlen(args->socket_address) > 0) ? inet_addr(args->socket_address) : htonl(INADDR_ANY);
-    local.sin_port = htons(args->socket_port);
-    
-    // 3. Binding port number
-    if (bind(server_socket,(struct sockaddr *)&local, sizeof(local)) < 0) {
-        perror("Server bind failed.\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    printf("Socket binded...\n");
 
     // 4. Get a listening socket
     if (listen(server_socket, 32) < 0) {
@@ -343,14 +360,14 @@ char *execute_commands(COMMAND **commands, int client_id)
         write(fd_list[client_id].fd, "\n", 1);
     }
     else {
-        char *syntax_error = "Syntax error (multiple commands not allowed)";
+        char *syntax_error = "Syntax error (multiple commands not supported)";
         write(fd_list[client_id].fd, syntax_error, strlen(syntax_error)+1);
     }
     
     return NULL;
 }
 
-char *handle_command(char *command, int client_id)
+void handle_command(char *command, int client_id)
 {
     char *output = NULL;
     int i,j;
@@ -360,13 +377,17 @@ char *handle_command(char *command, int client_id)
     
     
     // the client exited program, kill the socket afterwards
-    if (!(strcmp(command, "quit")))
-        return "quit";
+    if (!(strcmp(command, "quit"))) {
+        close_client_connection(i);
+        return;
+    }
     
     num_of_tokens = 0;
     num_of_commands = 0;
     redirection = 0;
     piped_command = 0;
+    redirection_in = 0;
+    redirection_out = 0;
     char **tokens = tokenizer(command);
     COMMAND **commands = parse_tokens(tokens);
     
@@ -410,6 +431,10 @@ void server_loop(ARGUMENTS *args)
     char server_command[1024];
     char client_command[1024];
     char *exec_output;
+    FILE *logfile;
+    
+    if (args->log_file)
+        logfile = fopen(args->log_file, "a");
     
     print_prompt();
     while(1) {
@@ -462,7 +487,7 @@ void server_loop(ARGUMENTS *args)
                         // close the connection if MAX_CLIENTS is reached
                         close(new_sock);
                     }
-                    printf("\nNew connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
+                    printf("\nNew connection accepted!\n");
                     print_prompt();
                     continue;
                 }
@@ -486,7 +511,11 @@ void server_loop(ARGUMENTS *args)
                         else if (s > 0) {
                             //buf[s] = 0;
                             printf("\nClient[%d] command: %s\n", i-2, client_command);
-                            exec_output = handle_command(client_command, i);
+                            
+                            if (args->log_file)
+                                fprintf(logfile, "%s\n", client_command);
+                            
+                            handle_command(client_command, i);
                             
                             if (exec_output && strcmp(exec_output, "quit") == 0) {
                                 close_client_connection(i);
@@ -514,7 +543,6 @@ void server_loop(ARGUMENTS *args)
         
     } // end while loop
         
-
     return;
 }
 

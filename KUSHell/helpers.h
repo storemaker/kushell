@@ -22,6 +22,7 @@ typedef struct arguments {
     int socket_port;
     char *socket_path;
     char *socket_address;
+    char *log_file;
     MODE mode;
 } ARGUMENTS;
 

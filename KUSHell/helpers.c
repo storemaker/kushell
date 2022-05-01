@@ -52,7 +52,7 @@ ARGUMENTS *parse_cmd_args(int argc, char **argv)
     int option = 0;
     ARGUMENTS *args = malloc(sizeof(ARGUMENTS));
     
-    while ((option = getopt(argc, argv, "u:i:p:sch")) != -1) {
+    while ((option = getopt(argc, argv, "u:i:p:schl:")) != -1) {
         switch (option) {
             case 'u':
                 args->socket_path = malloc(sizeof(optarg));
@@ -61,6 +61,10 @@ ARGUMENTS *parse_cmd_args(int argc, char **argv)
             case 'i':
                 args->socket_address = malloc(sizeof(optarg));
                 strcpy(args->socket_address, optarg);
+                break;
+            case 'l':
+                args->log_file = malloc(sizeof(optarg));
+                strcpy(args->log_file, optarg);
                 break;
             case 'p':
                 args->socket_port = atoi(optarg);

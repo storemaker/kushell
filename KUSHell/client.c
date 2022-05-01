@@ -94,7 +94,7 @@ void client_loop()
 void connect_to_server(ARGUMENTS *args)
 {
     
-    if (strlen(args->socket_path) > 0) {
+    if (args->socket_path && strlen(args->socket_path) > 0) {
         struct sockaddr_un servaddr;
         client_socket = socket(AF_UNIX, SOCK_STREAM, 0);
         servaddr.sun_family = AF_UNIX;
@@ -106,9 +106,6 @@ void connect_to_server(ARGUMENTS *args)
         }
         else
             printf("connected to the server..\n");
-        
-        
-        
     } else {
         struct sockaddr_in servaddr;
         client_socket = socket(AF_INET, SOCK_STREAM, 0);

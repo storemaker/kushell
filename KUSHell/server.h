@@ -37,7 +37,7 @@ void init_server(ARGUMENTS *args);
 void start_server_socket(ARGUMENTS *args);
 void server_loop(ARGUMENTS *args);
 char server_prompt(void);
-char* handle_command(char *command, int client_id);
+void handle_command(char *command, int client_id);
 void handle_server_command(char *command);
 char **tokenizer(char *input);
 COMMAND **parse_tokens(char **tokens);
