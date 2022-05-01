@@ -52,23 +52,15 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-u /Users/storemaker/"
+            argument = "-i 127.0.0.1"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = ""
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-p 1337"
+            argument = "-p 1389"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-s"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-i /Users/strrr"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

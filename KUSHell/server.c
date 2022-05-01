@@ -7,6 +7,9 @@
 
 #include "server.h"
 
+#define READ_END 0
+#define WRITE_END 1
+
 int num_of_tokens;
 int num_of_commands;
 struct pollfd fd_list[MAX_CLIENTS + 2];
@@ -150,7 +153,7 @@ COMMAND **parse_tokens(char **tokens)
             continue;
         }
         else if ((strcmp("|", tokens[i]) == 0 || strcmp(";", tokens[i]) == 0) && i+1 < num_of_tokens) {
-            //if ((strcmp("|", tokens[i]) == 0)) piped_command = 1;
+            if ((strcmp("|", tokens[i]) == 0)) piped_command = 1;
             j++;
             commands[j] = malloc(sizeof(COMMAND));
             commands[j]->program_name = malloc(strlen(tokens[i+1])*sizeof(char));
@@ -203,14 +206,9 @@ void handle_server_command(char *command)
 
 char *execute_commands(COMMAND **commands, int client_id)
 {
-    int fd[2];
+    int fd[2][2];
     int pid;
     int i, j;
-    if (pipe(fd) == -1) {
-        perror("pipe");
-        exit(1);
-    }
-    
     
     printf("cmdname: %s , ", commands[0]->program_name);
     for (i = 0; i < commands[0]->argc+1; i++) {
@@ -232,14 +230,68 @@ char *execute_commands(COMMAND **commands, int client_id)
             waitpid( pid, NULL, 0 );
         }
     }
-    else if (num_of_commands == 2) {
-        return NULL;
+    else if (num_of_commands == 2 && piped_command == 0) {
+        for (i = 0; i < 2; i++) {
+            int pid = fork();
+            // child process;
+            if (pid == 0) {
+                // duplicate the output to pipe
+                dup2(fd_list[client_id].fd, STDOUT_FILENO);
+                close(fd_list[client_id].fd);
+                execvp(commands[i]->program_name, commands[i]->argv);
+            }
+            else {
+                //close(fd_list[client_id].fd);
+                waitpid( pid, NULL, 0 );
+            }
+        }
     }
     else if (piped_command == 1) {
-        return NULL;
+        
+        printf("piped\n");
+        pid_t pid;
+        int fd[2];
+        
+        pipe(fd);
+        pid = fork();
+        
+        if(pid==0)
+        {
+            dup2(fd[WRITE_END], STDOUT_FILENO);
+            close(fd[READ_END]);
+            close(fd[WRITE_END]);
+            execvp(commands[0]->program_name, commands[0]->argv);
+            exit(1);
+        }
+        else
+        {
+            pid=fork();
+            
+            if(pid==0)
+            {
+                dup2(fd[READ_END], STDIN_FILENO);
+                dup2(fd_list[client_id].fd, STDOUT_FILENO);
+                close(fd_list[client_id].fd);
+                close(fd[WRITE_END]);
+                close(fd[READ_END]);
+                execvp(commands[1]->program_name, commands[1]->argv);
+                exit(1);
+            }
+            else
+            {
+                int status;
+                close(fd[READ_END]);
+                close(fd[WRITE_END]);
+                waitpid(pid, &status, 0);
+            }
+        }
     }
     else if (redirection == 1) {
-        return NULL;
+        
+    }
+    else {
+        char *syntax_error = "Syntax error (multiple commands not allowed)";
+        write(fd_list[client_id].fd, syntax_error, strlen(syntax_error)+1);
     }
     
     return NULL;
@@ -383,11 +435,10 @@ void server_loop(ARGUMENTS *args)
                             printf("\nclient[%d] command: %s\n", i-2, client_command);
                             exec_output = handle_command(client_command, i);
                             
-                            /*if (strcmp(exec_output, "quit") == 0) {
+                            if (exec_output && strcmp(exec_output, "quit") == 0) {
                                 close_client_connection(i);
-                            } else {
-                                write(fd_list[i].fd, exec_output, strlen(exec_output)+1);
-                            }*/
+                            }
+                            
                             print_prompt();
                         }
                         
