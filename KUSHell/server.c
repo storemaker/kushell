@@ -73,19 +73,31 @@ void start_server_socket(ARGUMENTS *args) {
 
 void server_help()
 {
-    printf("server help\n");
+    printf("Available commands as server:\n- halt => end the server and close all sockets\n- stat => show connected clients\n");
     return;
 }
 
 void server_halt()
 {
-    printf("server halt\n");
-    return;
+    for (int i = 0; i < MAX_CLIENTS+2; i++) {
+        if (fd_list[i].fd != -1 && i > 0)
+            close(fd_list[i].fd);
+        fd_list[i].fd = -1;
+    }
+    exit(EXIT_SUCCESS);
 }
 
 void server_stat()
 {
-    printf("server stat\n");
+    printf("Connected clients:\n");
+    
+    for (int i = 2; i < MAX_CLIENTS+2; i++) {
+        if (fd_list[i].fd != -1)
+            printf("Client ID: %d | Socket FD: %d\n", i-2, i);
+    }
+    
+    printf("Server socket FD: %d\n", 1);
+    
     return;
 }
 
@@ -225,11 +237,6 @@ void handle_server_command(char *command)
 char *execute_commands(COMMAND **commands, int client_id)
 {
     int i;
-    printf("cmdname: %s , ", commands[0]->program_name);
-    for (i = 0; i < commands[0]->argc+1; i++) {
-        printf("cmdargv[%d]: %s, ", i, commands[0]->argv[i]);
-    }
-    printf("\n");
     
     if (num_of_commands == 1 && redirection_in != 1 && redirection_out != 1) {
         int pid = fork();
@@ -478,7 +485,7 @@ void server_loop(ARGUMENTS *args)
                         }
                         else if (s > 0) {
                             //buf[s] = 0;
-                            //printf("\nclient[%d] command: %s\n", i-2, client_command);
+                            printf("\nClient[%d] command: %s\n", i-2, client_command);
                             exec_output = handle_command(client_command, i);
                             
                             if (exec_output && strcmp(exec_output, "quit") == 0) {
@@ -495,7 +502,7 @@ void server_loop(ARGUMENTS *args)
                 //
                 
                 // TODO: keep-alive check
-                printf("keepalive-check here\n");
+                //printf("keepalive-check here\n");
                 
                 break;
             } // end default case

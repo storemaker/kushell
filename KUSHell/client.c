@@ -26,6 +26,11 @@ void init_client(ARGUMENTS *args)
     client_loop();
 }
 
+void client_help()
+{
+    printf("Available commands as client:\n- quit => end the connection and quit.\n");
+}
+
 void client_loop()
 {
     int i = 0;
@@ -53,9 +58,12 @@ void client_loop()
                         buffer[strcspn(buffer, "\n")] = 0;
                         write(client_socket, buffer, strlen(buffer)+1);
                         
-                        if(!strcmp(buffer, "quit")) {
+                        if(strcmp(buffer, "quit") == 0) {
                             close(client_socket);
                             exit(EXIT_SUCCESS);
+                        } else if (strcmp(buffer, "help") == 0) {
+                            client_help();
+                            print_prompt();
                         }
                         
                         //print_prompt();
@@ -85,18 +93,36 @@ void client_loop()
 
 void connect_to_server(ARGUMENTS *args)
 {
-    struct sockaddr_in servaddr;
-        
-    client_socket = socket(AF_INET, SOCK_STREAM, 0);
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = (strlen(args->socket_address) > 0) ? inet_addr(args->socket_address) : htonl(INADDR_ANY);
-    servaddr.sin_port = htons(args->socket_port);
     
-    if (connect(client_socket, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
-        printf("Connection with the server failed...\n");
-        exit(EXIT_FAILURE);
+    if (strlen(args->socket_path) > 0) {
+        struct sockaddr_un servaddr;
+        client_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+        servaddr.sun_family = AF_UNIX;
+        strcpy(servaddr.sun_path, args->socket_path);
+        
+        if (connect(client_socket, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+            printf("Connection with the server failed...\n");
+            exit(EXIT_FAILURE);
+        }
+        else
+            printf("connected to the server..\n");
+        
+        
+        
+    } else {
+        struct sockaddr_in servaddr;
+        client_socket = socket(AF_INET, SOCK_STREAM, 0);
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = (strlen(args->socket_address) > 0) ? inet_addr(args->socket_address) : htonl(INADDR_ANY);
+        servaddr.sin_port = htons(args->socket_port);
+        
+        
+        if (connect(client_socket, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+            printf("Connection with the server failed...\n");
+            exit(EXIT_FAILURE);
+        }
+        else
+            printf("connected to the server..\n");
     }
-    else
-        printf("connected to the server..\n");
 }
 

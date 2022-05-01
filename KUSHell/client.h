@@ -21,6 +21,7 @@ extern struct pollfd client_fd_list[2];
 void init_client(ARGUMENTS *args);
 void connect_to_server(ARGUMENTS *args);
 void client_loop(void);
+void client_help(void);
 
 #endif /* client_h */
 
