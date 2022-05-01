@@ -7,6 +7,9 @@
 
 #include "client.h"
 
+int client_socket;
+struct pollfd client_fd_list[2];
+
 void init_client(ARGUMENTS *args)
 {
     
@@ -55,7 +58,7 @@ void client_loop()
                             exit(EXIT_SUCCESS);
                         }
                         
-                        print_prompt();
+                        
                     }
                     // server socket
                     if(i == 1 && (client_fd_list[1].revents & POLLIN)) {
@@ -64,7 +67,7 @@ void client_loop()
                         if (size > 0)
                             printf("server: %s\n", buf);
                     }
-                    
+                    print_prompt();
                 } // end for
                 
                 break;

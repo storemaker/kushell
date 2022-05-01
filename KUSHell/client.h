@@ -16,8 +16,8 @@
 #include "helpers.h"
 #define MAX_CLIENTS 32
 
-int client_socket;
-struct pollfd client_fd_list[2];
+extern int client_socket;
+extern struct pollfd client_fd_list[2];
 void init_client(ARGUMENTS *args);
 void connect_to_server(ARGUMENTS *args);
 void client_loop(void);

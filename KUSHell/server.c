@@ -7,6 +7,11 @@
 
 #include "server.h"
 
+int num_of_tokens;
+int num_of_commands;
+struct pollfd fd_list[MAX_CLIENTS + 2];
+int server_socket;
+int piped_command;
 
 void start_server_socket(ARGUMENTS *args) {
     struct sockaddr_in local;
@@ -60,6 +65,110 @@ void start_server_socket(ARGUMENTS *args) {
  
 }
 
+void server_help()
+{
+    printf("server help\n");
+    return;
+}
+
+void server_halt()
+{
+    printf("server halt\n");
+    return;
+}
+
+void server_stat()
+{
+    printf("server stat\n");
+    return;
+}
+
+
+char **tokenizer(char *input)
+{
+    char *copied_input = malloc(strlen(input)*sizeof(char));
+    strcpy(copied_input, input);
+    int bufsize = 64, position = 0;
+    char **tokens = malloc(bufsize * sizeof(char*));
+    char *token;
+    //char delim = " ";
+    num_of_tokens = 0;
+    num_of_commands = 0;
+    
+    if (!tokens) {
+        fprintf(stderr, "lsh: allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    token = strtok(copied_input, " ");
+    while (token != NULL) {
+        tokens[position] = token;
+        if ( strcmp("|", token) == 0 || strcmp(";", token) == 0) num_of_commands++;
+        position++;
+        
+        if (position >= bufsize) {
+            bufsize += 64;
+            tokens = realloc(tokens, bufsize * sizeof(char*));
+            if (!tokens) {
+                fprintf(stderr, "lsh: allocation error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        
+        token = strtok(NULL, " ");
+    }
+    tokens[position] = NULL;
+    num_of_tokens = position;
+    num_of_commands++;
+    
+    // TODO: escaping
+    /*
+     for (int i = 0; i < position; i++) {
+     
+     }*/
+    
+    
+    return tokens;
+}
+
+COMMAND **parse_tokens(char **tokens)
+{
+    COMMAND **commands = malloc(num_of_commands * sizeof(COMMAND*));
+    int j = 0;
+    
+    for (int i = 0; i < num_of_tokens; i++) {
+        
+        if (i == 0) {
+            commands[j] = malloc(sizeof(COMMAND));
+            commands[j]->program_name = malloc(strlen(tokens[i])*sizeof(char));
+            strcpy(commands[j]->program_name, tokens[i]);
+            commands[j]->argc = 0;
+            continue;
+        }
+        else if ((strcmp("|", tokens[i]) == 0 || strcmp(";", tokens[i]) == 0) && i+1 < num_of_tokens) {
+            if ((strcmp("|", tokens[i]) == 0)) piped_command = 1;
+            j++;
+            commands[j] = malloc(sizeof(COMMAND));
+            commands[j]->program_name = malloc(strlen(tokens[i+1])*sizeof(char));
+            strcpy(commands[j]->program_name, tokens[i+1]);
+            commands[j]->argc = 0;
+            i++;
+            continue;
+        }
+        
+        if (commands[j]->argc == 0) {
+            commands[j]->argv = malloc(sizeof(char*));
+        } else if (commands[j]->argc > 0) {
+            realloc(commands[j]->argv, commands[j]->argc);
+        }
+        
+        commands[j]->argv[commands[j]->argc] = malloc(strlen(tokens[i])*sizeof(char));
+        strcpy(commands[j]->argv[commands[j]->argc], tokens[i]);
+        commands[j]->argc++;
+    }
+    
+    return commands;
+}
 
 void handle_server_command(char *command)
 {
@@ -80,22 +189,30 @@ void handle_server_command(char *command)
     return;
 }
 
+
+
+
+char *execute_commands(COMMAND **commands)
+{
+    return "HAHAHAHAH U GOT FUCKED";
+}
+
 char *handle_command(char *command, int client_id)
 {
-    char *output;
+    char *output = NULL;
     
     if (strlen(command) == 0)
         return 0; // return but do not close client socket
     
     
     // the client exited program, kill the socket afterwards
-    if (!(strcmp(command, "quit"))) {
+    if (!(strcmp(command, "quit")))
         return "quit";
-    }
-        
     
+    char **tokens = tokenizer(command);
+    COMMAND **commands = parse_tokens(tokens);
     
-    
+    output = execute_commands(commands);
     
     return output; // do not close client socket
 }
@@ -174,7 +291,8 @@ void server_loop(ARGUMENTS *args)
                         // close the connection if MAX_CLIENTS is reached
                         close(new_sock);
                     }
-                    printf("got a new connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
+                    printf("\ngot a new connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
+                    print_prompt();
                     continue;
                 }
                 
@@ -204,7 +322,7 @@ void server_loop(ARGUMENTS *args)
                             } else {
                                 write(fd_list[i].fd, exec_output, strlen(exec_output)+1);
                             }
-                            
+                            print_prompt();
                         }
                         
                         memset(client_command, 0, 1024);
