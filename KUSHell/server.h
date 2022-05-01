@@ -16,6 +16,7 @@
 #include "helpers.h"
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #define MAX_CLIENTS 32
 
 
@@ -38,12 +39,13 @@ char* handle_command(char *command, int client_id);
 void handle_server_command(char *command);
 char **tokenizer(char *input);
 COMMAND **parse_tokens(char **tokens);
-char *execute_commands(COMMAND **commands);
+char *execute_commands(COMMAND **commands, int client_id);
 extern int num_of_tokens;
 extern int num_of_commands;
 extern struct pollfd fd_list[MAX_CLIENTS + 2];
 extern int server_socket;
 extern int piped_command;
+extern int redirection;
 
 #endif /* server_h */
 

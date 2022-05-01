@@ -12,6 +12,7 @@ int num_of_commands;
 struct pollfd fd_list[MAX_CLIENTS + 2];
 int server_socket;
 int piped_command;
+int redirection;
 
 void start_server_socket(ARGUMENTS *args) {
     struct sockaddr_in local;
@@ -141,30 +142,41 @@ COMMAND **parse_tokens(char **tokens)
         if (i == 0) {
             commands[j] = malloc(sizeof(COMMAND));
             commands[j]->program_name = malloc(strlen(tokens[i])*sizeof(char));
+            commands[j]->argv = malloc(2*sizeof(char*));
             strcpy(commands[j]->program_name, tokens[i]);
-            commands[j]->argc = 0;
+            commands[j]->argv[0] = malloc(strlen(tokens[i])*sizeof(char));
+            strcpy(commands[j]->argv[0], tokens[i]);
+            commands[j]->argc = 1;
             continue;
         }
         else if ((strcmp("|", tokens[i]) == 0 || strcmp(";", tokens[i]) == 0) && i+1 < num_of_tokens) {
-            if ((strcmp("|", tokens[i]) == 0)) piped_command = 1;
+            //if ((strcmp("|", tokens[i]) == 0)) piped_command = 1;
             j++;
             commands[j] = malloc(sizeof(COMMAND));
             commands[j]->program_name = malloc(strlen(tokens[i+1])*sizeof(char));
+            commands[j]->argv = malloc(2*sizeof(char*));
+            
             strcpy(commands[j]->program_name, tokens[i+1]);
-            commands[j]->argc = 0;
+            
+            commands[j]->argv[0] = malloc(strlen(tokens[i+1])*sizeof(char));
+            strcpy(commands[j]->argv[0], tokens[i+1]);
+            commands[j]->argc = 1;
             i++;
             continue;
         }
         
-        if (commands[j]->argc == 0) {
-            commands[j]->argv = malloc(sizeof(char*));
-        } else if (commands[j]->argc > 0) {
+        if (commands[j]->argc > 2) {
             realloc(commands[j]->argv, commands[j]->argc);
         }
         
         commands[j]->argv[commands[j]->argc] = malloc(strlen(tokens[i])*sizeof(char));
         strcpy(commands[j]->argv[commands[j]->argc], tokens[i]);
         commands[j]->argc++;
+    }
+    
+    for (int i = 0; i < num_of_commands; i++) {
+        realloc(commands[i]->argv, commands[i]->argc+1);
+        commands[i]->argv[commands[i]->argc] = NULL;
     }
     
     return commands;
@@ -189,17 +201,54 @@ void handle_server_command(char *command)
     return;
 }
 
-
-
-
-char *execute_commands(COMMAND **commands)
+char *execute_commands(COMMAND **commands, int client_id)
 {
-    return "HAHAHAHAH U GOT FUCKED";
+    int fd[2];
+    int pid;
+    int i, j;
+    if (pipe(fd) == -1) {
+        perror("pipe");
+        exit(1);
+    }
+    
+    
+    printf("cmdname: %s , ", commands[0]->program_name);
+    for (i = 0; i < commands[0]->argc+1; i++) {
+        printf("cmdargv[%d]: %s, ", i, commands[0]->argv[i]);
+    }
+    printf("\n");
+    
+    if (num_of_commands == 1) {
+        int pid = fork();
+        // child process;
+        if (pid == 0) {
+            // duplicate the output to pipe
+            dup2(fd_list[client_id].fd, STDOUT_FILENO);
+            close(fd_list[client_id].fd);
+            execvp(commands[0]->program_name, commands[0]->argv);
+        }
+        else {
+            //close(fd_list[client_id].fd);
+            waitpid( pid, NULL, 0 );
+        }
+    }
+    else if (num_of_commands == 2) {
+        return NULL;
+    }
+    else if (piped_command == 1) {
+        return NULL;
+    }
+    else if (redirection == 1) {
+        return NULL;
+    }
+    
+    return NULL;
 }
 
 char *handle_command(char *command, int client_id)
 {
     char *output = NULL;
+    int i,j;
     
     if (strlen(command) == 0)
         return 0; // return but do not close client socket
@@ -209,10 +258,27 @@ char *handle_command(char *command, int client_id)
     if (!(strcmp(command, "quit")))
         return "quit";
     
+    num_of_tokens = 0;
+    num_of_commands = 0;
+    redirection = 0;
+    piped_command = 0;
     char **tokens = tokenizer(command);
     COMMAND **commands = parse_tokens(tokens);
     
-    output = execute_commands(commands);
+    output = execute_commands(commands, client_id);
+    
+    // release commands to avoid memory problems
+    // with new incoming commands
+    for (i = 0; i < num_of_commands; i++) {
+        for (j = 0; j < commands[i]->argc+1; j++) {
+            free(commands[i]->argv[j]);
+        }
+        free(commands[i]->program_name);
+        free(commands[i]);
+    }
+    
+    
+    free(tokens);
     
     return output; // do not close client socket
 }
@@ -314,14 +380,14 @@ void server_loop(ARGUMENTS *args)
                         }
                         else if (s > 0) {
                             //buf[s] = 0;
-                            printf("client[%d] command: %s\n", i-2, client_command);
+                            printf("\nclient[%d] command: %s\n", i-2, client_command);
                             exec_output = handle_command(client_command, i);
                             
-                            if (strcmp(exec_output, "quit") == 0) {
+                            /*if (strcmp(exec_output, "quit") == 0) {
                                 close_client_connection(i);
                             } else {
                                 write(fd_list[i].fd, exec_output, strlen(exec_output)+1);
-                            }
+                            }*/
                             print_prompt();
                         }
                         
@@ -337,6 +403,7 @@ void server_loop(ARGUMENTS *args)
        
         
         // TODO: keep-alive check
+        printf("keepalive-check here\n");
         
         
     } // end while loop
@@ -346,7 +413,6 @@ void server_loop(ARGUMENTS *args)
 }
 
 void init_server(ARGUMENTS *args) {
-    
     start_server_socket(args);
     server_loop(args);
     return;

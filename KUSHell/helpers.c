@@ -29,7 +29,7 @@ void print_prompt()
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     
-    printf("%d:%d %s@%s%c ", timeinfo->tm_hour, timeinfo->tm_min, get_username(), get_hostname(), DELIM_CHAR);
+    printf("%02d:%02d %s@%s%c ", timeinfo->tm_hour, timeinfo->tm_min, get_username(), get_hostname(), DELIM_CHAR);
     fflush(stdout);
 }
 
