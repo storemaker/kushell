@@ -367,13 +367,29 @@ char *execute_commands(COMMAND **commands, int client_id)
     return NULL;
 }
 
+void close_client_connection(int client_id)
+{
+    if(fd_list[client_id].fd != -1) {
+        return;
+    }
+    
+    //close the socket and reset FD for future use
+    close(fd_list[client_id].fd);
+    fd_list[client_id].fd = -1;
+    fd_list[client_id].revents = 0;
+    fd_list[client_id].events = 0;
+    
+    //TODO: release client IP from connected_clients array
+    
+}
+
 void handle_command(char *command, int client_id)
 {
     char *output = NULL;
     int i,j;
     
     if (strlen(command) == 0)
-        return 0; // return but do not close client socket
+        return; // return but do not close client socket
     
     
     // the client exited program, kill the socket afterwards
@@ -406,24 +422,10 @@ void handle_command(char *command, int client_id)
     
     free(tokens);
     
-    return output; // do not close client socket
+    return; // do not close client socket
 }
 
-void close_client_connection(int client_id)
-{
-    if(fd_list[client_id].fd != -1) {
-        return;
-    }
-    
-    //close the socket and reset FD for future use
-    close(fd_list[client_id].fd);
-    fd_list[client_id].fd = -1;
-    fd_list[client_id].revents = 0;
-    fd_list[client_id].events = 0;
-    
-    //TODO: release client IP from connected_clients array
-    
-}
+
 
 void server_loop(ARGUMENTS *args)
 {
@@ -516,10 +518,7 @@ void server_loop(ARGUMENTS *args)
                                 fprintf(logfile, "%s\n", client_command);
                             
                             handle_command(client_command, i);
-                            
-                            if (exec_output && strcmp(exec_output, "quit") == 0) {
-                                close_client_connection(i);
-                            }
+                        
                             
                             print_prompt();
                         }

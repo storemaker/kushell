@@ -62,10 +62,6 @@ ARGUMENTS *parse_cmd_args(int argc, char **argv)
                 args->socket_address = malloc(sizeof(optarg));
                 strcpy(args->socket_address, optarg);
                 break;
-            case 'l':
-                args->log_file = malloc(sizeof(optarg));
-                strcpy(args->log_file, optarg);
-                break;
             case 'p':
                 args->socket_port = atoi(optarg);
                 break;
@@ -85,6 +81,5 @@ ARGUMENTS *parse_cmd_args(int argc, char **argv)
                 break;
         }
     }
-    
     return args;
 }
