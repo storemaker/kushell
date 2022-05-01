@@ -16,6 +16,7 @@
 #include "helpers.h"
 #include <stdlib.h>
 #include <string.h>
+#include <sys/fcntl.h>
 #include <unistd.h>
 #define MAX_CLIENTS 32
 
@@ -24,6 +25,7 @@ typedef struct command {
     char *program_name;
     char **argv;
     int argc;
+    char filename[1024];
 } COMMAND;
 
 
@@ -46,6 +48,8 @@ extern struct pollfd fd_list[MAX_CLIENTS + 2];
 extern int server_socket;
 extern int piped_command;
 extern int redirection;
+extern int redirection_in;
+extern int redirection_out;
 
 #endif /* server_h */
 

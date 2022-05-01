@@ -1,0 +1,15 @@
+Makefile
+client.c
+client.h
+client.o
+file.txt
+helpers.c
+helpers.h
+helpers.o
+kushell
+main.c
+main.o
+matusko
+server.c
+server.h
+server.o

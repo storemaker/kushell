@@ -62,13 +62,13 @@ void client_loop()
                     }
                     // server socket
                     if(i == 1 && (client_fd_list[1].revents & POLLIN)) {
-                        char buf[1024];
+                        char buf[16384];
                         ssize_t size = read(client_fd_list[1].fd,buf,sizeof(buf)-1);
                         if (size > 0) {
                             buf[size] = '\0';
                             printf("\n%s", buf);
                             print_prompt();
-                            memset(buffer, 0, 1024);
+                            memset(buf, 0, 16384);
                         }
                     }
                 } // end for

@@ -16,6 +16,8 @@ struct pollfd fd_list[MAX_CLIENTS + 2];
 int server_socket;
 int piped_command;
 int redirection;
+int redirection_in;
+int redirection_out;
 
 void start_server_socket(ARGUMENTS *args) {
     struct sockaddr_in local;
@@ -142,6 +144,22 @@ COMMAND **parse_tokens(char **tokens)
     
     for (int i = 0; i < num_of_tokens; i++) {
         
+        if (strcmp(">", tokens[i]) == 0) {
+            redirection_out = 1;
+            strcpy(commands[j]->filename, tokens[i+1]);
+            commands[j]->argv[num_of_tokens-1] = NULL;
+            commands[j]->argv[num_of_tokens-2] = NULL;
+            break;
+        }
+        
+        if (strcmp("<", tokens[i]) == 0) {
+            redirection_in = 1;
+            strcpy(commands[j]->filename, tokens[i+1]);
+            commands[j]->argv[num_of_tokens-1] = NULL;
+            commands[j]->argv[num_of_tokens-2] = NULL;
+            break;
+        }
+        
         if (i == 0) {
             commands[j] = malloc(sizeof(COMMAND));
             commands[j]->program_name = malloc(strlen(tokens[i])*sizeof(char));
@@ -206,17 +224,14 @@ void handle_server_command(char *command)
 
 char *execute_commands(COMMAND **commands, int client_id)
 {
-    int fd[2][2];
-    int pid;
-    int i, j;
-    
+    int i;
     printf("cmdname: %s , ", commands[0]->program_name);
     for (i = 0; i < commands[0]->argc+1; i++) {
         printf("cmdargv[%d]: %s, ", i, commands[0]->argv[i]);
     }
     printf("\n");
     
-    if (num_of_commands == 1) {
+    if (num_of_commands == 1 && redirection_in != 1 && redirection_out != 1) {
         int pid = fork();
         // child process;
         if (pid == 0) {
@@ -248,7 +263,7 @@ char *execute_commands(COMMAND **commands, int client_id)
     }
     else if (piped_command == 1) {
         
-        printf("piped\n");
+        //printf("piped\n");
         pid_t pid;
         int fd[2];
         
@@ -286,8 +301,39 @@ char *execute_commands(COMMAND **commands, int client_id)
             }
         }
     }
-    else if (redirection == 1) {
-        
+    else if (redirection_out == 1) {
+        int pid = fork();
+        // child process;
+        if (pid == 0) {
+            FILE *filee;
+            filee = fopen(commands[0]->filename, "w");
+            // duplicate the output to pipe
+            dup2(fileno(filee), STDOUT_FILENO);
+            close(fileno(filee));
+            execvp(commands[0]->program_name, commands[0]->argv);
+        }
+        else {
+            //close(fd_list[client_id].fd);
+            waitpid( pid, NULL, 0 );
+        }
+        write(fd_list[client_id].fd, "\n", 1);
+    }
+    else if (redirection_in == 1) {
+        int pid = fork();
+        // child process;
+        if (pid == 0) {
+            FILE *filee;
+            filee = fopen(commands[0]->filename, "r");
+            // duplicate the output to pipe
+            dup2(fileno(filee), STDIN_FILENO);
+            close(fileno(filee));
+            execvp(commands[0]->program_name, commands[0]->argv);
+        }
+        else {
+            //close(fd_list[client_id].fd);
+            waitpid( pid, NULL, 0 );
+        }
+        write(fd_list[client_id].fd, "\n", 1);
     }
     else {
         char *syntax_error = "Syntax error (multiple commands not allowed)";
@@ -322,9 +368,9 @@ char *handle_command(char *command, int client_id)
     // release commands to avoid memory problems
     // with new incoming commands
     for (i = 0; i < num_of_commands; i++) {
-        for (j = 0; j < commands[i]->argc+1; j++) {
+        /*for (j = 0; j < commands[i]->argc+1; j++) {
             free(commands[i]->argv[j]);
-        }
+        }*/
         free(commands[i]->program_name);
         free(commands[i]);
     }
@@ -409,7 +455,7 @@ void server_loop(ARGUMENTS *args)
                         // close the connection if MAX_CLIENTS is reached
                         close(new_sock);
                     }
-                    printf("\ngot a new connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
+                    printf("\nNew connection![%s:%d]\n",inet_ntoa(client.sin_addr),ntohs(client.sin_port));
                     print_prompt();
                     continue;
                 }
@@ -432,7 +478,7 @@ void server_loop(ARGUMENTS *args)
                         }
                         else if (s > 0) {
                             //buf[s] = 0;
-                            printf("\nclient[%d] command: %s\n", i-2, client_command);
+                            //printf("\nclient[%d] command: %s\n", i-2, client_command);
                             exec_output = handle_command(client_command, i);
                             
                             if (exec_output && strcmp(exec_output, "quit") == 0) {
@@ -448,13 +494,15 @@ void server_loop(ARGUMENTS *args)
                 
                 //
                 
+                // TODO: keep-alive check
+                printf("keepalive-check here\n");
+                
                 break;
             } // end default case
         } // end switch
        
         
-        // TODO: keep-alive check
-        printf("keepalive-check here\n");
+        
         
         
     } // end while loop
