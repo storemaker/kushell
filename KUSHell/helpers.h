@@ -24,6 +24,7 @@ typedef struct arguments {
     char *socket_address;
     char *log_file;
     MODE mode;
+    int timeout;
 } ARGUMENTS;
 
 void print_current_time(void);

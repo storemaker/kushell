@@ -42,9 +42,11 @@ void print_help(void)
     printf("-p  socket port\n");
     printf("-s  server mode\n");
     printf("-c  client mode\n");
-    printf("-h  help me\n\n");
+    printf("-h  help me\n");
+    printf("-l  logfile\n");
+    printf("-t  timeout\n\n");
     printf("Example:\n");
-    printf("./kushell -u /socket/path -p 1337 -s");
+    printf("./kushell -u /socket/path -s");
 }
 
 ARGUMENTS *parse_cmd_args(int argc, char **argv)
@@ -52,7 +54,7 @@ ARGUMENTS *parse_cmd_args(int argc, char **argv)
     int option = 0;
     ARGUMENTS *args = malloc(sizeof(ARGUMENTS));
     
-    while ((option = getopt(argc, argv, "u:i:p:schl:")) != -1) {
+    while ((option = getopt(argc, argv, "u:i:p:schl:t:")) != -1) {
         switch (option) {
             case 'u':
                 args->socket_path = malloc(sizeof(optarg));
@@ -75,6 +77,12 @@ ARGUMENTS *parse_cmd_args(int argc, char **argv)
             case 'c':
                 args->mode = CLIENT;
                 break;
+            case 'l':
+                args->log_file = malloc(sizeof(optarg));
+                strcpy(args->log_file, optarg);
+                break;
+            case 't':
+                args->timeout = atoi(optarg);
             default:
                 print_help();
                 exit(EXIT_SUCCESS);

@@ -60,7 +60,11 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-c"
+            argument = "-s"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-l /Users/jakubtaraba/School/spaasm/KUSHell/KUSHell/KUSHell/logfile.txt"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

@@ -51,6 +51,7 @@ extern int piped_command;
 extern int redirection;
 extern int redirection_in;
 extern int redirection_out;
+extern int epoch[34];
 
 #endif /* server_h */
 

@@ -18,6 +18,7 @@ int piped_command;
 int redirection;
 int redirection_in;
 int redirection_out;
+int epoch[34];
 
 void start_server_socket(ARGUMENTS *args) {
     
@@ -108,12 +109,12 @@ void server_stat()
 {
     printf("Connected clients:\n");
     
-    for (int i = 2; i < MAX_CLIENTS+2; i++) {
+    for (int i = 2; i < MAX_CLIENTS; i++) {
         if (fd_list[i].fd != -1)
             printf("Client ID: %d | Socket FD: %d\n", i-2, i);
     }
     
-    printf("Server socket FD: %d\n", 1);
+    printf("Server listening sockets FD: %d\n", 1);
     
     return;
 }
@@ -369,7 +370,7 @@ char *execute_commands(COMMAND **commands, int client_id)
 
 void close_client_connection(int client_id)
 {
-    if(fd_list[client_id].fd != -1) {
+    if(fd_list[client_id].fd == -1) {
         return;
     }
     
@@ -394,7 +395,7 @@ void handle_command(char *command, int client_id)
     
     // the client exited program, kill the socket afterwards
     if (!(strcmp(command, "quit"))) {
-        close_client_connection(i);
+        close_client_connection(client_id);
         return;
     }
     
@@ -435,8 +436,7 @@ void server_loop(ARGUMENTS *args)
     char *exec_output;
     FILE *logfile;
     
-    if (args->log_file)
-        logfile = fopen(args->log_file, "a");
+    logfile = fopen(args->log_file, "a");
     
     print_prompt();
     while(1) {
@@ -460,6 +460,9 @@ void server_loop(ARGUMENTS *args)
                     server_command[strcspn(server_command, "\n")] = 0;
                     handle_server_command(server_command);
                     print_prompt();
+                    
+                    if(args->log_file)
+                        fprintf(logfile, "server command: %s\n", server_command);
                 }
                 
                 // server socket
@@ -515,7 +518,7 @@ void server_loop(ARGUMENTS *args)
                             printf("\nClient[%d] command: %s\n", i-2, client_command);
                             
                             if (args->log_file)
-                                fprintf(logfile, "%s\n", client_command);
+                                fprintf(logfile, "client[%d]: %s\n", i-2, client_command);
                             
                             handle_command(client_command, i);
                         
@@ -541,6 +544,9 @@ void server_loop(ARGUMENTS *args)
         
         
     } // end while loop
+    
+    
+    fclose(logfile);
         
     return;
 }
