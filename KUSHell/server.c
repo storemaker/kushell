@@ -18,7 +18,7 @@ int piped_command;
 int redirection;
 int redirection_in;
 int redirection_out;
-unsigned long epoch[34];
+unsigned long epoch[34] = { 0 };
 
 void start_server_socket(ARGUMENTS *args) {
     
@@ -380,7 +380,9 @@ void close_client_connection(int client_id)
     fd_list[client_id].fd = -1;
     fd_list[client_id].revents = 0;
     fd_list[client_id].events = 0;
-        
+    
+    //TODO: release client IP from connected_clients array
+    
 }
 
 void handle_command(char *command, int client_id)
@@ -444,6 +446,17 @@ void server_loop(ARGUMENTS *args)
         switch( poll(fd_list, MAX_CLIENTS + 2, 1000) ) {
             case 0: {
                 //printf("timeout...\n");
+                
+                for (i = 2; i < MAX_CLIENTS; i++) {
+                    time_t noww = (unsigned long)time(NULL);
+                    //printf("epoch check\n");
+                    if (epoch[i] != 0 && noww - epoch[i] > args->timeout && fd_list[i].fd != -1) {
+                        printf("\nClient[%d] timed out...\n", i-2);
+                        write(fd_list[i].fd, "Disconnected due to timeout", 28);
+                        close_client_connection(i);
+                        print_prompt();
+                    }
+                }
                 continue;
             }
             case -1: {
@@ -531,10 +544,9 @@ void server_loop(ARGUMENTS *args)
                 } // end for
                 
                 //
-                
                 for (i = 2; i < MAX_CLIENTS; i++) {
                     time_t noww = (unsigned long)time(NULL);
-                    
+                    //printf("epoch check\n");
                     if (noww - epoch[i] > args->timeout && fd_list[i].fd != -1) {
                         printf("\nClient[%d] timed out...\n", i-2);
                         write(fd_list[i].fd, "Disconnected due to timeout", 28);
@@ -542,6 +554,7 @@ void server_loop(ARGUMENTS *args)
                         print_prompt();
                     }
                 }
+                
                 
                 break;
             } // end default case

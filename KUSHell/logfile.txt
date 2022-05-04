@@ -11,3 +11,23 @@ client[0]: ls -la
 client[0]: ls -la
 server command: stat
 client[0]: quit
+client[0]: ls -la
+client[0]: ls
+client[0]: ls
+client[0]: ls -la
+client[0]: ls -la
+client[0]: ls -la
+client[0]: ls -la
+server command: stat
+server command: stat
+client[0]: ls -la
+client[0]: ls -la
+server command: stat
+client[0]: ls -la
+server command: stat
+client[0]: ls -la
+server command: stat
+server command: make
+client[0]: ls -la
+client[0]: ls -la
+client[0]: sort -r

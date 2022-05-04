@@ -83,7 +83,7 @@ void client_loop()
                         if (size > 0) {
                             buf[size] = '\0';
                             printf("\n%s", buf);
-                            if (strcmp("Closing server", buf) == 0 || strcmp("Disconnected due to timeout", buf)) {
+                            if (strcmp("Closing server", buf) == 0 || strcmp("Disconnected due to timeout", buf) == 0) {
                                 close(client_socket);
                                 exit(EXIT_SUCCESS);
                             }
