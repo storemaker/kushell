@@ -380,9 +380,7 @@ void close_client_connection(int client_id)
     fd_list[client_id].fd = -1;
     fd_list[client_id].revents = 0;
     fd_list[client_id].events = 0;
-    
-    //TODO: release client IP from connected_clients array
-    
+        
 }
 
 void handle_command(char *command, int client_id)
@@ -522,7 +520,8 @@ void server_loop(ARGUMENTS *args)
                                 fprintf(logfile, "client[%d]: %s\n", i-2, client_command);
                             
                             handle_command(client_command, i);
-                        
+                            
+                            epoch[i] = (unsigned long)time(NULL);
                             
                             print_prompt();
                         }
@@ -533,8 +532,16 @@ void server_loop(ARGUMENTS *args)
                 
                 //
                 
-                // TODO: keep-alive check
-                //printf("keepalive-check here\n");
+                for (i = 2; i < MAX_CLIENTS; i++) {
+                    time_t noww = (unsigned long)time(NULL);
+                    
+                    if (noww - epoch[i] > args->timeout && fd_list[i].fd != -1) {
+                        printf("\nClient[%d] timed out...\n", i-2);
+                        write(fd_list[i].fd, "Disconnected due to timeout", 28);
+                        close_client_connection(i);
+                        print_prompt();
+                    }
+                }
                 
                 break;
             } // end default case
