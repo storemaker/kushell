@@ -83,6 +83,7 @@ ARGUMENTS *parse_cmd_args(int argc, char **argv)
                 break;
             case 't':
                 args->timeout = atoi(optarg);
+                break;
             default:
                 print_help();
                 exit(EXIT_SUCCESS);

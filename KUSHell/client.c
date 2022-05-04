@@ -10,9 +10,17 @@
 int client_socket;
 struct pollfd client_fd_list[2];
 
+void client_halt(int num)
+{
+    write(client_socket, "quit", 5);
+    close(client_socket);
+    printf("\nDisconnecting from server...\n");
+    exit(EXIT_SUCCESS);
+}
+
 void init_client(ARGUMENTS *args)
 {
-    
+    signal(SIGINT, client_halt);
     connect_to_server(args);
     
     // FD for client's STDIN
@@ -75,6 +83,10 @@ void client_loop()
                         if (size > 0) {
                             buf[size] = '\0';
                             printf("\n%s", buf);
+                            if (strcmp("Closing server", buf) == 0) {
+                                close(client_socket);
+                                exit(EXIT_SUCCESS);
+                            }
                             print_prompt();
                             memset(buf, 0, 16384);
                         }

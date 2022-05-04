@@ -31,7 +31,7 @@ typedef struct command {
 
 
 void server_stat(void);
-void server_halt(void);
+void server_halt(int num);
 void server_help(void);
 void init_server(ARGUMENTS *args);
 void start_server_socket(ARGUMENTS *args);
@@ -51,7 +51,7 @@ extern int piped_command;
 extern int redirection;
 extern int redirection_in;
 extern int redirection_out;
-extern int epoch[34];
+extern unsigned long epoch[34];
 
 #endif /* server_h */
 

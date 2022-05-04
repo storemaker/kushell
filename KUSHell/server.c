@@ -18,7 +18,7 @@ int piped_command;
 int redirection;
 int redirection_in;
 int redirection_out;
-int epoch[34];
+unsigned long epoch[34];
 
 void start_server_socket(ARGUMENTS *args) {
     
@@ -27,6 +27,8 @@ void start_server_socket(ARGUMENTS *args) {
         server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
         local_unix.sun_family = AF_UNIX;
         strcpy(local_unix.sun_path, args->socket_path);
+        
+        printf("Socket created...\n");
         
         // 3. Binding port number
         if (bind(server_socket,(struct sockaddr *)&local_unix, sizeof(local_unix)) < 0) {
@@ -95,13 +97,18 @@ void server_help()
     return;
 }
 
-void server_halt()
+void server_halt(int num)
 {
     for (int i = 0; i < MAX_CLIENTS+2; i++) {
+        if (fd_list[i].fd != -1 && i > 1)
+            write(fd_list[i].fd, "Closing server", 18);
+        
         if (fd_list[i].fd != -1 && i > 0)
             close(fd_list[i].fd);
+        
         fd_list[i].fd = -1;
     }
+    printf("\nClosed all connections, closing server...\n");
     exit(EXIT_SUCCESS);
 }
 
@@ -156,13 +163,7 @@ char **tokenizer(char *input)
     tokens[position] = NULL;
     num_of_tokens = position;
     num_of_commands++;
-    
-    // TODO: escaping
-    /*
-     for (int i = 0; i < position; i++) {
-     
-     }*/
-    
+
     
     return tokens;
 }
@@ -217,7 +218,7 @@ COMMAND **parse_tokens(char **tokens)
         }
         
         if (commands[j]->argc > 2) {
-            realloc(commands[j]->argv, commands[j]->argc);
+            commands[j]->argv = realloc(commands[j]->argv, commands[j]->argc);
         }
         
         commands[j]->argv[commands[j]->argc] = malloc(strlen(tokens[i])*sizeof(char));
@@ -226,7 +227,7 @@ COMMAND **parse_tokens(char **tokens)
     }
     
     for (int i = 0; i < num_of_commands; i++) {
-        realloc(commands[i]->argv, commands[i]->argc+1);
+        commands[j]->argv = realloc(commands[i]->argv, commands[i]->argc+1);
         commands[i]->argv[commands[i]->argc] = NULL;
     }
     
@@ -240,7 +241,7 @@ void handle_server_command(char *command)
         server_help();
     }
     else if (strcmp(command, "halt") == 0) {
-        server_halt();
+        server_halt(1);
     }
     else if (strcmp(command, "stat") == 0) {
         server_stat();
@@ -552,6 +553,7 @@ void server_loop(ARGUMENTS *args)
 }
 
 void init_server(ARGUMENTS *args) {
+    signal(SIGINT, server_halt);
     start_server_socket(args);
     server_loop(args);
     return;

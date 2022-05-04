@@ -1,0 +1,8 @@
+server command: stat
+client[0]: ls -la
+client[0]: echo ahoj > file2.txt
+client[0]: ls -la
+client[0]: cat file2.txt
+client[0]: ls -la | sort -r
+client[0]: quit
+server command: stat

@@ -22,6 +22,7 @@ void init_client(ARGUMENTS *args);
 void connect_to_server(ARGUMENTS *args);
 void client_loop(void);
 void client_help(void);
+void client_halt(int num);
 
 #endif /* client_h */
 

@@ -60,6 +60,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-u /Users/jakubtaraba/School/spaasm/spaasm.sock"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-s"
             isEnabled = "YES">
          </CommandLineArgument>
